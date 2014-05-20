@@ -1,100 +1,55 @@
-Java JMX tutorial - A "Hello world" JMX application
-By Alvin Alexander. Last updated: Sep 28, 2013
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements. See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+%define bin_jsvc /usr/bin
 
-Java JMX FAQ: Can you share a simple Java JMX example?
+Name: commons-daemon-1.0.15-src.zip
+Version: 1.0.15
+Release: 1
+Summary: Application to launch java daemon
+URL: http://commons.apache.org/daemon/
+Group: Development/Libraries
+Buildroot: %{_topdir}/INSTALL/%{name}-%{version}
+License: ASL 2.0
+Source0: commons-daemon-%{Version}-src.tar.gz
+BuildRequires: autoconf, automake, gcc
+Requires:
 
-Here is some sample Java source code for some JMX tests that I created recently. I got a large percentage of this code from Sun's JMX MBean tutorial when I first started working with JMX, and I think it's some decent "Hello World" starter code. The main thing I've done here is (a) clarify what they've written and (b) added a shell script to start the JMX application. (I'm also about to publish some other JMX source code that I know I wrote myself.)
-Our JMX MBean interface
+%description
+jsvc executes classfile that implements a Daemon interface.
 
-First, here's the source code for a Java MBean interface named HelloMBean:
+%prep
+%setup -n commons-daemon-%{Version}-src
 
-public interface HelloMBean {
-   public void setMessage(String message);
-   public String getMessage();
-   public void sayHello();
-}
+%clean
+rm -rf $RPM_BUILD_ROOT
 
-A class to implement the JMX MBean interface
+%build
+rm -f jsvc
+pushd unix
+  ./configure --prefix=/usr
+  make
+  cp -f jsvc ../jsvc
+popd
 
-Next, here's the source code for a Java class named Hello that implements the HelloMBean interface we just defined:
+%install
+%__rm -rf $RPM_BUILD_ROOT
+'cp' -rf ${BUILD_DIR}/jsvc /usr/bin
 
-public class Hello implements HelloMBean {
-   private String message = null;
+%files
+%defattr(-,root,root)
+%{bin_jsvc}
 
-   public Hello() {
-      message = "Hello, world";
-   }
 
-   public Hello(String message) {
-      this.message = message;
-   }
-
-   public void setMessage(String message) {
-      this.message = message;
-   }
-
-   public String getMessage() {
-      return message;
-   }
-
-   public void sayHello() {
-      System.out.println(message);
-   }
-}
-
-A JMX example class (a JMX service)
-
-Next up, here's the source code for a Java class named SimpleAgent that includes a main method that starts up our JMX service application:
-
-import javax.management.*;
-import java.lang.management.*;
-
-public class SimpleAgent {
-   private MBeanServer mbs = null;
-
-   public SimpleAgent() {
-
-      // Get the platform MBeanServer
-       mbs = ManagementFactory.getPlatformMBeanServer();
-
-      // Unique identification of MBeans
-      Hello helloBean = new Hello();
-      ObjectName helloName = null;
-
-      try {
-         // Uniquely identify the MBeans and register them with the platform MBeanServer 
-         helloName = new ObjectName("FOO:name=HelloBean");
-         mbs.registerMBean(helloBean, helloName);
-      } catch(Exception e) {
-         e.printStackTrace();
-      }
-   }
-
-   // Utility method: so that the application continues to run
-   private static void waitForEnterPressed() {
-      try {
-         System.out.println("Press  to continue...");
-         System.in.read();
-      } catch (Exception e) {
-         e.printStackTrace();
-      }
-    }
-
-   public static void main(String argv[]) {
-      SimpleAgent agent = new SimpleAgent();
-      System.out.println("SimpleAgent is running...");
-      SimpleAgent.waitForEnterPressed();
-   }
-}
-
-A script to start our JMX service
-
-And finally here's a Unix/Linux shell script named run.sh that I wrote to run this sample JMX application ("JMX service"):
-
-#!/bin/sh
-
-java -Dcom.sun.management.jmxremote \
-     -Dcom.sun.management.jmxremote.port=1617 \
-     -Dcom.sun.management.jmxremote.authenticate=false \
-     -Dcom.sun.management.jmxremote.ssl=false \
-     SimpleAgent
+%changelog
